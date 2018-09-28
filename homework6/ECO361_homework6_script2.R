@@ -1,0 +1,127 @@
+library(foreign)
+data_oh <- read.dta("data/DID_OH_ver12.dta")
+data_mi <- read.dta("data/DID_MI_ver12.dta")
+
+#first models
+model_oh_cost_lm <- lm(medcost ~ treat + post + treat_post, data_oh)
+summary(model_oh_cost_lm)
+
+model_oh_plan_lm <- lm(hlthpln1 ~ treat + post + treat_post, data_oh)
+summary(model_oh_plan_lm)
+
+#means
+treat_pre <- mean(data_oh$medcost[data_oh$treat == 1 & data_oh$post == 0])
+treat_post <- mean(data_oh$medcost[data_oh$treat == 1 & data_oh$post == 1])
+con_pre <- mean(data_oh$medcost[data_oh$treat == 0 & data_oh$post == 0])
+con_post <- mean(data_oh$medcost[data_oh$treat == 0 & data_oh$post == 1])
+(treat_post - treat_pre) - (con_post - con_pre)
+
+treat_pre <- mean(data_oh$hlthpln1[data_oh$treat == 1 & data_oh$post == 0])
+treat_post <- mean(data_oh$hlthpln1[data_oh$treat == 1 & data_oh$post == 1])
+con_pre <- mean(data_oh$hlthpln1[data_oh$treat == 0 & data_oh$post == 0])
+con_post <- mean(data_oh$hlthpln1[data_oh$treat == 0 & data_oh$post == 1])
+(treat_post - treat_pre) - (con_post - con_pre)
+
+#covariate models
+model_oh_plan_cov <- lm(hlthpln1 ~ treat + post + treat_post + male + veteran3 +
+                           children + married + divorced + widowed + separated + 
+                           never_married + log_income +
+                           edu_hs_grad + edu_college_attd + edu_college_grad, data_oh)
+summary(model_oh_plan_cov)
+
+model_oh_cost_cov <- lm(medcost ~ treat + post + treat_post + male + veteran3 +
+                           children + married + divorced + widowed + separated + 
+                           never_married + log_income +
+                           edu_hs_grad + edu_college_attd + edu_college_grad, data_oh)
+summary(model_oh_cost_cov)
+
+#
+#regression tables
+#
+library(stargazer)
+stargazer(model_oh_plan_lm, model_oh_cost_lm, model_oh_plan_cov, model_oh_cost_cov,
+          type = "html", 
+          dep.var.labels = c("Prob(Insruance)", "Prob(Skip Care b/c Cost", "Prob(Insruance)", "Prob(Skip Care b/c Cost"),
+          covariate.labels = c("Treat", "Post", "Treat*Post"),
+          out = "stargazer.html")
+
+data_oh_tx <- subset(data_oh, data_oh$treat == 0)
+data_oh_oh <- subset(data_oh, data_oh$treat == 1)
+
+stargazer(data_oh_oh,
+          title = "Treatment Group",
+          type = "html",
+          digits = 1,
+          out = "desc_treat.html")
+
+stargazer(data_oh_tx,
+          title = "Control Group",
+          type = "html",
+          digits = 1,
+          out = "desc_control.html")
+
+#
+#graph for coverage
+#
+library(ggplot2)
+data_oh$hlthpln1_n <- NA
+table(data_oh$year[data_oh$hlthpln1 == 1 & data_oh$treat == 1])
+table(data_oh$year[data_oh$hlthpln1 == 1 & data_oh$treat == 0])
+table(data_oh$year[data_oh$treat == 0])
+table(data_oh$year[data_oh$treat == 1])
+#treatment
+data_oh$hlthpln1_n[data_oh$year == 2011 & data_oh$treat == 1] <- 2125 / 2669
+data_oh$hlthpln1_n[data_oh$year == 2012 & data_oh$treat == 1] <- 2879 / 3602
+data_oh$hlthpln1_n[data_oh$year == 2013 & data_oh$treat == 1] <- 2661 / 3319
+data_oh$hlthpln1_n[data_oh$year == 2014 & data_oh$treat == 1] <- 2501 / 2845
+data_oh$hlthpln1_n[data_oh$year == 2015 & data_oh$treat == 1] <- 2570 / 2811
+data_oh$hlthpln1_n[data_oh$year == 2016 & data_oh$treat == 1] <- 2817 / 3032
+
+#control
+data_oh$hlthpln1_n[data_oh$year == 2011 & data_oh$treat == 0] <- 2751 / 4221
+data_oh$hlthpln1_n[data_oh$year == 2012 & data_oh$treat == 0] <- 1550 / 2635
+data_oh$hlthpln1_n[data_oh$year == 2013 & data_oh$treat == 0] <- 1899 / 3061
+data_oh$hlthpln1_n[data_oh$year == 2014 & data_oh$treat == 0] <- 2653 / 3869
+data_oh$hlthpln1_n[data_oh$year == 2015 & data_oh$treat == 0] <- 2673 / 3745
+data_oh$hlthpln1_n[data_oh$year == 2016 & data_oh$treat == 0] <- 2069 / 2787
+
+library(ggthemes)
+library(scales)
+ggplot(data_oh) + 
+  geom_line(aes(x = year, y = hlthpln1_n, group = factor(treat), color = factor(treat))) +
+  geom_point(aes(x = year, y = hlthpln1_n, group = factor(treat), color = factor(treat))) +
+  labs(x = "Year", y = "Proportion Having Health Insurance", color = "Treatment", 
+       title = "Visual Test for Parallel Trends", subtitle = "Ohio Dataset") +
+  theme_pander() + scale_color_pander()
+
+#
+#graphs for cost
+#
+data_oh$medcost_n <- NA
+table(data_oh$year[data_oh$medcost == 1 & data_oh$treat == 1])
+table(data_oh$year[data_oh$medcost == 1 & data_oh$treat == 0])
+table(data_oh$year[data_oh$treat == 0])
+table(data_oh$year[data_oh$treat == 1])
+
+#treatment
+data_oh$medcost_n[data_oh$year == 2011 & data_oh$treat == 1] <- 580 / 2669
+data_oh$medcost_n[data_oh$year == 2012 & data_oh$treat == 1] <- 858 / 3602
+data_oh$medcost_n[data_oh$year == 2013 & data_oh$treat == 1] <- 787 / 3319
+data_oh$medcost_n[data_oh$year == 2014 & data_oh$treat == 1] <- 552 / 2845
+data_oh$medcost_n[data_oh$year == 2015 & data_oh$treat == 1] <- 425 / 2811
+data_oh$medcost_n[data_oh$year == 2016 & data_oh$treat == 1] <- 429 / 3032
+
+#control
+data_oh$medcost_n[data_oh$year == 2011 & data_oh$treat == 0] <- 1315 / 4221
+data_oh$medcost_n[data_oh$year == 2012 & data_oh$treat == 0] <- 871 / 2635
+data_oh$medcost_n[data_oh$year == 2013 & data_oh$treat == 0] <- 944 / 3061
+data_oh$medcost_n[data_oh$year == 2014 & data_oh$treat == 0] <- 1081 / 3869
+data_oh$medcost_n[data_oh$year == 2015 & data_oh$treat == 0] <- 1020 / 3745
+data_oh$medcost_n[data_oh$year == 2016 & data_oh$treat == 0] <- 714 / 2787
+
+ggplot(data_oh, aes(x = year, y = medcost_n, group = factor(treat), color = factor(treat))) + 
+  geom_line() +
+  geom_point() +
+  labs(x = "Year", y = "Proportion Skipping Healthcare Due to Cost", color = "Treatment", 
+       title = "Visual Test for Parallel Trends", subtitle = "Ohio Dataset") +
+  theme_pander() + scale_color_pander()
