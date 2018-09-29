@@ -229,6 +229,7 @@ library(scales)
 ggplot(data_oh) + 
   geom_line(aes(x = year, y = hlthpln1_n, group = factor(treat), color = factor(treat))) +
   geom_point(aes(x = year, y = hlthpln1_n, group = factor(treat), color = factor(treat))) +
+  geom_vline(xintercept = 2013) +
   labs(x = "Year", y = "Proportion Having Health Insurance", color = "Treatment", 
        title = "Visual Test for Parallel Trends", subtitle = "Ohio Dataset") +
   theme_pander() + scale_color_pander()
@@ -292,6 +293,7 @@ data_oh$medcost_n[data_oh$year == 2016 & data_oh$treat == 0] <- 714 / 2787
 ggplot(data_oh, aes(x = year, y = medcost_n, group = factor(treat), color = factor(treat))) + 
   geom_line() +
   geom_point() +
+  geom_vline(xintercept = 2013) +
   labs(x = "Year", y = "Proportion Skipping Healthcare Due to Cost", color = "Treatment", 
        title = "Visual Test for Parallel Trends", subtitle = "Ohio Dataset") +
   theme_pander() + scale_color_pander()
